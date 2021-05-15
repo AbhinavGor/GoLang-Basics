@@ -1,16 +1,21 @@
 package main
 
 import (
-	"./database"
-	"./routes"
+	"github.com/gofiber/fiber/v2"
+	"com.abhinavgor.test/database"
+	"com.abhinavgor.test/routes"
 )
 
 func main() {
-	database.connection()
+	database.Connect();
 
 	app := fiber.New()
 
 	routes.Setup(app)
 
-	app.Listen(":3000");
+	err := app.Listen(":3000")
+
+	if err != nil{
+		panic(err)
+	}
 }
