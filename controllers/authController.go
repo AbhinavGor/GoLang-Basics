@@ -5,6 +5,9 @@ import (
 	"com.abhinavgor.test/models"
 	"golang.org/x/crypto/bcrypt"
 	"com.abhinavgor.test/database"
+	"github.com/dgrijalva/jwt-go"
+	"strconv"
+	"time"
 )
 
 func Register (c *fiber.Ctx) error {
@@ -13,7 +16,7 @@ func Register (c *fiber.Ctx) error {
 	if err := c.BodyParser(&data); err != nil {
 		return err
 	}
-	
+
 	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 14)
 
 	user := models.User{
@@ -41,7 +44,7 @@ func Login (c *fiber.Ctx) error {
 	if user.Id == 0{
 		c.Status(fiber.StatusNotFound)
 		return c.JSON(fiber.Map{
-			"message": "User not fond!",
+			"message": "User not found!",
 		})
 	}
 
@@ -52,6 +55,19 @@ func Login (c *fiber.Ctx) error {
 		})
 	}
 
+	claims := jwt.NewWithClaims(jwt.SignInMethodSH256, jwt.StandardClaims{
+		Issuer: strconv.Itoa(user.Id),
+		ExpiresAt: time.Now().Add(time.Hour * 2).Unix(),
+	})
+
+	token, err := claims.SignedString([]byte("SecretKey"))
+
+	if err != nil{
+		c.Status(fiber.StatusInternalServerError)
+		return c.JSON(fiber.Map{
+			"message": "Could not login!",
+		})
+	}
+
 	return c.JSON(user)
 }
-
