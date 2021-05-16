@@ -55,7 +55,7 @@ func Login (c *fiber.Ctx) error {
 		})
 	}
 
-	claims := jwt.NewWithClaims(jwt.SignInMethodSH256, jwt.StandardClaims{
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
 		Issuer: strconv.Itoa(user.Id),
 		ExpiresAt: time.Now().Add(time.Hour * 2).Unix(),
 	})
@@ -69,5 +69,16 @@ func Login (c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(user)
+	cookie := fiber.Cookie{
+			Name: "jwt",
+			Value: token,
+			Expires: time.Now().Add(time.Hour * 2),
+			HTTPOnly: true,
+	}
+
+	c.Cookie(&cookie)
+
+	return c.JSON(fiber.Map{
+		"message": "Success",
+	})
 }
