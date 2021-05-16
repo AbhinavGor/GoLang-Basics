@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const SecretKey = "THISISASECRET"
+
 func Register (c *fiber.Ctx) error {
 	var data map[string]string
 
@@ -60,7 +62,7 @@ func Login (c *fiber.Ctx) error {
 		ExpiresAt: time.Now().Add(time.Hour * 2).Unix(),
 	})
 
-	token, err := claims.SignedString([]byte("SecretKey"))
+	token, err := claims.SignedString([]byte(SecretKey))
 
 	if err != nil{
 		c.Status(fiber.StatusInternalServerError)
@@ -80,5 +82,43 @@ func Login (c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"message": "Success",
+	})
+}
+
+func User(c *fiber.Ctx) error {
+	cookie := c.Cookies("jwt")
+
+	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(SecretKey), nil
+	})
+
+	if err != nil {
+		c.Status(fiber.StatusUnauthorized)
+
+		return c.JSON(fiber.Map{
+			"message": "Unauthorized access!",
+		})
+	}
+
+	claims := token.Claims.(*jwt.StandardClaims)
+
+	var user models.User
+	database.DB.Where("id = ?", claims.Issuer).First(&user)
+
+	return c.JSON(claims)
+}
+
+func Logout(c *fiber.Ctx) error {
+	cookie := fiber.Cookie{
+		Name: "jwt",
+		Value: "",
+		Expiry: time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+	}
+
+	c.Cookie(&cookie)
+
+	return c.JSON(fiber.Map{
+		"message": "Logour success!",
 	})
 }
